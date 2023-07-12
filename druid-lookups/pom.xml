@@ -48,7 +48,7 @@
         <dependency>
             <groupId>com.yahoo.maha</groupId>
             <artifactId>maha-db</artifactId>
-            <version>${project.version}</version>
+            <version>6.135</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-io</groupId>
