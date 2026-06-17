@@ -9,6 +9,7 @@ import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
 import com.mongodb.MongoClient;
 import com.mongodb.ServerAddress;
+import com.mongodb.connection.ServerDescription;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -105,7 +106,7 @@ public class MongoExtractionNamespaceCacheFactory
                     } catch (Exception e) {
                         emitter.emit(ServiceMetricEvent.builder()
                                 .setDimension(MonitoringConstants.MAHA_LOOKUP_NAME, extractionNamespace.getLookupName())
-                                .setMetric(MonitoringConstants.MAHA_LOOKUP_MONGO_DATABASE_OR_COLLECTION_FAILURE, 1));
+                                .build(MonitoringConstants.MAHA_LOOKUP_MONGO_DATABASE_OR_COLLECTION_FAILURE, 1));
                         LOG.error(e, "Failed to get database or collection, numAttempt=%s hosts=%s database=%s"
                                 , numAttempts
                                 , extractionNamespace.getConnectorConfig().getHosts()
@@ -149,7 +150,7 @@ public class MongoExtractionNamespaceCacheFactory
                         } catch (Exception e) {
                             emitter.emit(ServiceMetricEvent.builder()
                                     .setDimension(MonitoringConstants.MAHA_LOOKUP_NAME, extractionNamespace.getLookupName())
-                                    .build(MonitoringConstants.MAHA_LOOKUP_MONGO_DOCUMENT_PROCESS_FAILURE, ""));
+                                    .build(MonitoringConstants.MAHA_LOOKUP_MONGO_DOCUMENT_PROCESS_FAILURE, 1));
                             LOG.error(e, "collectionName=%s tsColumn=%s failed to process document document=%s"
                                     , extractionNamespace.getCollectionName()
                                     , extractionNamespace.getTsColumn()
@@ -160,7 +161,7 @@ public class MongoExtractionNamespaceCacheFactory
                     } catch (Exception e) {
                         emitter.emit(ServiceMetricEvent.builder()
                                 .setDimension(MonitoringConstants.MAHA_LOOKUP_NAME, extractionNamespace.getLookupName())
-                                .build(MonitoringConstants.MAHA_LOOKUP_MONGO_DOCUMENT_PROCESS_FAILURE, ""));
+                                .build(MonitoringConstants.MAHA_LOOKUP_MONGO_DOCUMENT_PROCESS_FAILURE, 1));
                         LOG.error(e, "collectionName=%s tsColumn=%s failed to process document document=%s"
                                 , extractionNamespace.getCollectionName()
                                 , extractionNamespace.getTsColumn()
@@ -187,7 +188,7 @@ public class MongoExtractionNamespaceCacheFactory
 
                 emitter.emit(ServiceMetricEvent.builder()
                         .setDimension(MonitoringConstants.MAHA_LOOKUP_NAME, extractionNamespace.getLookupName())
-                        .setMetric(MonitoringConstants.MAHA_LOOKUP_MONGO_PROCESSING_TIME, System.currentTimeMillis() - startMillis));
+                        .build(MonitoringConstants.MAHA_LOOKUP_MONGO_PROCESSING_TIME, System.currentTimeMillis() - startMillis));
                 LOG.info("Finished loading %d values for extractionNamespace[%s] with %d new/updated entries", cache.size(), id, count);
                 return String.format("%d", extractionNamespace.getPreviousLastUpdateTime());
             }
@@ -203,7 +204,9 @@ public class MongoExtractionNamespaceCacheFactory
                 if (mongoClientCache.containsKey(key)) {
                     HashSet<ServerAddress> serverAddressList = null;
                     try {
-                        serverAddressList = new HashSet<>(aMongoClient.getServerAddressList());
+                        serverAddressList = aMongoClient.getClusterDescription().getServerDescriptions().stream()
+                                .map(ServerDescription::getAddress)
+                                .collect(java.util.stream.Collectors.toCollection(HashSet::new));
                     } catch (Exception e) {
                         LOG.error(e, "Failed to get client server address list, closing");
                         LOG.info("Removing stale mongo client for namespace : %s", id);
@@ -245,7 +248,7 @@ public class MongoExtractionNamespaceCacheFactory
                 } catch (Exception e) {
                     emitter.emit(ServiceMetricEvent.builder()
                             .setDimension(MonitoringConstants.MAHA_LOOKUP_NAME, namespace.getLookupName())
-                            .setMetric(MonitoringConstants.MAHA_LOOKUP_MONGO_CLIENT_FAILURE, 1));
+                            .build(MonitoringConstants.MAHA_LOOKUP_MONGO_CLIENT_FAILURE, 1));
                     LOG.error(e, "Failed to create mongo client, numAttempt=%s hosts=%s database=%s"
                             , numAttempts
                             , namespace.getConnectorConfig().getHosts()
