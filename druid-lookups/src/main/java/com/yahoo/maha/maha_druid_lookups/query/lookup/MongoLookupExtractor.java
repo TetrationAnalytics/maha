@@ -24,13 +24,22 @@ public class MongoLookupExtractor<U extends List<String>> extends OnlineDatastor
     }
 
     @Override
-    public boolean supportsAsMap() {
+    public boolean canIterate() {
         return false;
     }
 
     @Override
-    public Map<String, String> asMap() {
-        return staticMap;
+    public boolean canGetKeySet() {
+        return false;
     }
 
+    @Override
+    public Iterable<Map.Entry<String, String>> iterable() {
+        return staticMap.entrySet();
+    }
+
+    @Override
+    public Set<String> keySet() {
+        return null;
+    }
 }

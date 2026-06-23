@@ -193,14 +193,13 @@ public class MongoStorageConnectorConfig {
     public MongoClient getMongoClient() {
         MongoStorageConnectorConfig config = this;
         List<ServerAddress> serverAddressList = getServerAddressList();
-
-        List<MongoCredential> mongoCredentialList = Collections.emptyList();
-        if (getUser() != null && getPassword() != null) {
-            mongoCredentialList = Lists.newArrayList(MongoCredential
-                    .createCredential(config.getUser(), config.getDbName(), config.getPassword().toCharArray()));
-
-        }
         MongoClientOptions options = config.getMongoClientOptions();
-        return new MongoClient(serverAddressList, mongoCredentialList, options);
+
+        if (getUser() != null && getPassword() != null) {
+            MongoCredential credential = MongoCredential.createCredential(
+                    config.getUser(), config.getDbName(), config.getPassword().toCharArray());
+            return new MongoClient(serverAddressList, credential, options);
+        }
+        return new MongoClient(serverAddressList, options);
     }
 }
